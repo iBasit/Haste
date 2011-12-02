@@ -1,0 +1,14 @@
+= Haste
+
+
+== Changelog
+
+See the {CHANGELOG.rdoc}[https://github.com/imegah/GlobalQuran.com-code/blob/master/CHANGELOG.rdoc] file for details.
+
+
+== License
+
+Copyright (c) imegah.com
+
+license copyright here
+    
