@@ -26,7 +26,7 @@ Features:
 
 ## Author
 
-Author:: [Basit](http://www.Basit.me/) <i@Basit.me>
+Basit <i@Basit.me> - [website](http://www.Basit.me/)
 
     
 ## Thanks to
