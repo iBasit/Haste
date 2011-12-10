@@ -207,6 +207,7 @@ class App
 
 		$auto_include_dir = self::$auto_include_dir;
 		$root = self::$root;
+		$path = $class.'.class.php';
 
 		foreach ($auto_include_dir as $include_dir)
 		{

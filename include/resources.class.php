@@ -28,6 +28,10 @@ class resources
 		)
 	);
 
+	public function __construct()
+	{
+		$this->_resetDB('resource');
+	}
 
 	public function setPath ($paths)
 	{
@@ -39,9 +43,94 @@ class resources
 		$this->_paths = $paths;
 	}
 
+	private function _setDB ($for)
+	{
+		if ($for == 'usage')
+			return Database::Set('resource_usage', 'resource_usage_id');
+		elseif ($for == 'package')
+			return Database::Set('resource_package', 'resource_package_id');
+		elseif ($for == 'resource')
+			return Database::Set('resource', 'resource_id');
+	}
+
+	private function _resetDB ($for)
+	{
+		$resource = $this->_setDB('resource');
+
+		if ($for == 'usage')
+			return $resource->query('TRUNCATE TABLE resource_usage');
+		elseif ($for == 'package')
+			return $resource->query('TRUNCATE TABLE resource_package');
+		elseif ($for == 'resource')
+			return $resource->query('TRUNCATE TABLE resource');
+	}
+
 	public function getPath ()
 	{
 		return $this->_paths;
+	}
+
+protected function getType ($extension)
+	{
+		if ($extension == 'png' || $extension == 'jpeg' || $extension == 'jpg' || $extension == 'gif')
+			return 'image';
+		else
+			return $extension;
+	}
+
+	protected function getTokens ($file)
+	{
+		if (!file_exists($file))
+			return array();
+
+		$source = file_get_contents($file);
+		$tokens = token_get_all($source);
+
+		foreach ($tokens as $token)
+		{
+			if (is_array($token))
+			{
+		   		// token array
+		   		list($id, $text) = $token;
+
+		   		if ($id == T_DOC_COMMENT && $getTokens = _getTokens($text))
+		   		{
+		   			if (!empty($getTokens))
+		   				return $getTokens;
+		   		}
+		   }
+		}
+	}
+
+	private function _getTokens ($tokenString)
+	{
+		$array = array();
+
+		$tokenString = str_ireplace(array('/', '*', '\\'), '', $tokenString);
+		$stringArray = explode("\n", $tokenString);
+
+		foreach ($stringArray as $string)
+		{
+			$string = trim($string);
+			$name 	= explode(' ', $string, 2);
+
+			if (is_array($name))
+			{
+				switch ($name['0'])
+				{
+					case '@provides':
+					case '@requires':
+					case '@group':
+					case '@suggestion':
+						$array["{$name['0']}"] = isset($name['1']) ? $name['1'] : '';
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		return $array;
 	}
 
 	public function scan ()
@@ -50,13 +139,13 @@ class resources
 
 		foreach ($paths as $key => $scan_dir)
 		{
-			$this->_dirTree["{$key}"] = $this->_scan($scan_dir);
+			$this->_dirTree = $this->_scan($scan_dir);
 		}
 
 		return $this->_dirTree;
 	}
 
-	protected function _scan (Array $path_array, $directory = NULL)
+	private function _scan (Array $path_array, $directory = NULL)
 	{
 		$filter = null;
 		if (!$directory)
@@ -124,26 +213,34 @@ class resources
 						continue;
 					}
 
-					$cacheFile = $path_array['dir'].'/'.$this->_cache_dir_name.'/';
-					if (isset($path_array['dir_cache']) && $path_array['dir_cache'])
-						$cacheFile .= $path_array['subDir'];
-					$cacheFile .= $fileName;
-					$cacheFile = realpath($cacheFile); // if dont exist, it will empty it.
-
 					$url = null;
 					if (!empty($path_array['url_path']))
 						$url = $path_array['url_path'].'/'.$path_array['subDir'].$fileName;
 
-					$directory_tree[] = array (
-						'path' => realpath($path),
+					$path = realpath($path);
+					$directory_tree["{$path}"] = array (
 						'subDir' => $path_array['subDir'],
-						'local_url' => $url,
+//						'local_url' => $url,
 						'name' => $fileName,
-						'type' => $extension,
+						'type' => $this->getType($extension),
+						'exetension' => $extension,
 						'size' => filesize($path),
-						'last_modified' => filemtime($path),
-					 	'cache_modified' => $cacheFile ? filemtime($cacheFile) : 0
+						'last_modified' => filemtime($path)
 					);
+/*
+					$resource = $this->_setDB('resource');
+					$resource->resource_id = NULL;
+					$resource->name = 'provider name'; //TODO
+					$resource->path = $path;
+					$resource->type = $this->getType($extension);
+					$resource->file_exetension = $extension;
+					$resource->file_name = $fileName;
+					$resource->file_size = filesize($path);
+					$resource->force_group_on = NULL;//TODO
+					$resource->requires = NULL;//TODO
+					$resource->last_modification = filemtime($path);
+					$resource->save();
+*/
 				}
 			}
 			closedir($directory_list);
@@ -155,10 +252,30 @@ class resources
 		}
 	}
 
-	private function _setDB ($for = 'resource')
+	public function updates ()
 	{
-		return Database::Set('resources', $table_pk);
+		$DB = $this->_setDB('resource');
+		$resource = $DB->Select('select * from resource');
+
+		if ($resource)
+		{
+			foreach ($resource as $Next)
+			{
+				if (!empty($this->_dirTree["{$resource->path}"]))
+				{
+					// if its same old file then delete it
+					if ($this->_dirTree["{$resource->path}"]['last_modification'] == filemtime($resource->path))
+						unset($this->_dirTree["{$resource->path}"]); // no need for update, its old file
+					else // trigger for update
+						$this->_dirTree["{$resource->path}"]['is_update'] = TRUE;
+				}
+
+			}
+		}
+
+		return $this->_dirTree;
 	}
+
 
 	public function fetch ()
 	{
@@ -171,6 +288,8 @@ class resources
 
 		//$this->_compile($this->_dirTree);
 	}
+
+
 
 	protected function _compile ($dirTree)
 	{
