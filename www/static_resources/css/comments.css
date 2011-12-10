@@ -1,0 +1,61 @@
+.commentBox li {
+	margin:0;
+	padding:0;
+	height:1%;
+/* border color for input #bdc7d8
+height 14px and on focused height is 29px */
+}
+	.commentBox .head {
+		height:5px;
+		position:absolute;
+	}
+	.commentBox .head i {
+		background-image:url(../icons/arrowComment.png) ;
+		background-repeat: no-repeat;
+		display: block;
+		position: relative;
+		height: 5px;
+		width: 9px;
+		margin-left: 17px;
+		top:-5px;		
+	}
+	.commentBox .item {		
+		background-color: #edeff4;
+		border-bottom: 1px solid #e5eaf1;
+		margin-top: 2px;
+		padding: 5px 5px 4px 5px;
+	}
+	.commentBox .comment .commentText {
+		margin-left: 40px;
+		line-height: 1.2em;
+	}
+	.commentBox .comment .commentFoot {
+		margin-top: 3px;
+	}
+	.commentBox .addCommentText {
+		border:#bdc7d8 1px solid;
+		height:14px;
+		width: 98%;
+		padding: 2px;
+	}
+	.commentBox .addCommentText:focus {
+		height:29px;
+	}
+	.commentBox .addComment .addCommentAvator, .commentBox .addComment .addCommentButton {
+		display:none;
+	}
+	.commentBox .addComment.active .addCommentAvator {
+		display:block;
+		float:left;	
+	}
+	.commentBox .addComment.active .addCommentText {
+		width:88%;
+		height:29px;
+		float:right;
+	}
+	.commentBox .addComment.active .addCommentButton {
+		display:block;
+		clear:both;
+		text-align:right;
+		padding-top:4px;
+	}

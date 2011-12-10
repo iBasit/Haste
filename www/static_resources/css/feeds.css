@@ -1,0 +1,80 @@
+.newsFeedMenu {
+	float: right;
+	margin-top:-17px;
+	font-size:120%;
+}
+
+.activity {
+	width: 100%;
+	border-bottom: #E6E6E6 1px solid;
+	padding-top:8px;
+	padding-bottom:8px;
+}
+	.activity .headTitle {
+		margin-bottom: 6px;
+	}
+	.activity .title, .activity .attachTitle {
+		font-weight: bold;
+	}
+	.activity .thumbnail {
+		float: left;
+		margin-right:10px;
+	}
+	.activity p {
+		margin-bottom:8px;
+	}
+	.activity .message {
+		margin-left: 60px;
+	}	
+	.activity .message.noAttachMedia {
+		border-left:#CCC 2px solid;
+		padding-left:10px;
+	}
+	.activity .attachTitle, .activity .attachFrom, .activity .thumbnail {
+		display: block;
+		margin-bottom:4px;
+	}
+	.activity.comment .attachTitle, .activity.comment .attachMessage {
+		display:inline;
+	}
+	.activity .attachMessage {
+		display: table-cell;
+		height:1%;
+	}
+	.activity .attachValue {
+		color:#333;
+	}
+	.activity .footBlock {
+		margin-top:8px;
+		margin-left:62px;
+		width:80%;
+	}
+	.activity .footBlock li {
+		margin-right: 4px;
+	}
+	.activity .commentBox {
+		margin-top: 8px;
+		margin-left:62px;
+		margin-right:30px;
+	}
+	
+.ajaxMore, .ajaxMoreLoading {
+	display: block;
+	top:1em;
+	margin-top:1em;
+	padding:10px 15px 10px 15px;
+	background-color: #edeff4;
+	border:#d8dfea 1px solid;
+}
+	.ajaxMoreLoading {
+		height:11px;
+		text-align:center;
+	}	
+	.ajaxMore:hover {
+		background-color: #d8dfea;
+	}
+	.ajaxMoreSideLink {
+		float: right;
+		margin-top: -2em;
+		margin-right:.5em;
+	}

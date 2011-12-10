@@ -1,0 +1,21 @@
+/**
+ * @provides ads-user
+ */
+#sidebar .ads {
+		overflow: hidden;  /* except IE6 */
+		display: block;
+		border-bottom: #E6E6E6 1px solid;
+		padding-bottom: 4px;	
+	}
+		#sidebar .ads p {
+			margin-left: 116px;	
+		}
+		#sidebar .ads .link {
+			display:block;
+			width:100%;
+			margin-top:-4px;
+			margin-bottom: 4px;		
+		}
+		#sidebar ul {
+			clear: both;
+		}
