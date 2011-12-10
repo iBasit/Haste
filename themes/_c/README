@@ -1,0 +1,3 @@
+= PHP Template Minified Version
+
+This folder keeps the minified version of the templates, which reduces the file size for each php template file.
