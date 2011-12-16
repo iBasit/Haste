@@ -23,6 +23,7 @@ Features:
 * [Velocity 09: David Wei and Changhao Jiang, "Frontend Perfor (video)](http://www.youtube.com/watch?v=51JGykHrwZA)
 * [Front End Tech Talk (video)](http://www.facebook.com/video/video.php?v=596368660334&oid=9445547199)
 * [David Wei talks](http://davidwei.org/cv/talks/)
+* [Things You Should Do Soon: Static Resources](http://phabricator.com/docs/phabricator/article/Things_You_Should_Do_Soon:_Static_Resources.html)
 
 ## Author
 

@@ -1,12 +1,13 @@
+/**
+ * @requires modernizr global main
+ */
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Default Layout</title>
+<title>Haste Project</title>
 <meta name="keywords" content="keywords, here" />
 <meta name="description" content="your description here" />
-<link rel="stylesheet" href="images/themes/default/css/global.css" media="screen" />
-<script src="javascript/jquery/modernizr-1.6.min.js"></script>
 </head>
 <body>
 <div id="main">

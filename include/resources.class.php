@@ -8,21 +8,26 @@
  */
 class resources
 {
+	private $_production_mode = TRUE;
 	private $_cache_dir_name = '_c';
 	private $_dirTree = array();
 
+	private $_pathTemplate = '';
 	private $_paths = array(
 		'html' => array(
 			'dir' => '',
+			'type' => 'template',
 			'gzip' => false,
 			'dir_cache' => true // cache files in there own directory names, but in _c (cache dir)
 		),
 		'js' => array(
 			'dir' => '',
+			'type' => 'static',
 			'url_path' => ''
 		),
 		'css' => array(
 			'dir' => '',
+			'type' => 'static',
 			'url_path' => '',
 			'filter' => '.swf,.htaccess'
 		)
@@ -30,17 +35,19 @@ class resources
 
 	public function __construct()
 	{
-		$this->_resetDB('resource');
 	}
 
 	public function setPath ($paths)
 	{
-		foreach ($paths as $key => $array)
-		{
-			$array2 = is_array($this->_paths["{$key}"]) ? $this->_paths["{$key}"] : array();
-			$paths["{$key}"] = array_merge($array2, $array);
-		}
 		$this->_paths = $paths;
+
+		foreach ($paths as $path)
+		{
+			if (isset($path['type']) && $path['type'] == 'template')
+			{
+				$this->_pathTemplate = $path['dir'];
+			}
+		}
 	}
 
 	private function _setDB ($for)
@@ -65,12 +72,17 @@ class resources
 			return $resource->query('TRUNCATE TABLE resource');
 	}
 
+	public function setProductionMode ($mode)
+	{
+		$this->_production_mode = $mode ? TRUE : FALSE;
+	}
+
 	public function getPath ()
 	{
 		return $this->_paths;
 	}
 
-protected function getType ($extension)
+	protected function getType ($extension)
 	{
 		if ($extension == 'png' || $extension == 'jpeg' || $extension == 'jpg' || $extension == 'gif')
 			return 'image';
@@ -80,57 +92,54 @@ protected function getType ($extension)
 
 	protected function getTokens ($file)
 	{
+		$array = array(
+			'@provides' => '',
+			'@requires' => '',
+			'@group'    => '',
+			'@suggestion' => ''
+		);
+
 		if (!file_exists($file))
-			return array();
+			return $array;
 
-		$source = file_get_contents($file);
-		$tokens = token_get_all($source);
+		$content = file_get_contents($file);
 
-		foreach ($tokens as $token)
+		if (preg_match_all('!/\*[^*]*\*+([^/][^*]*\*+)*/!', $content, $comment) > 0)
 		{
-			if (is_array($token))
+			$comment = str_ireplace(array("/", "*", '  '), '', $comment[0]);
+			$comment = explode("\n", implode('', $comment));
+
+			foreach ($comment as $param)
 			{
-		   		// token array
-		   		list($id, $text) = $token;
+				$param = trim($param);
+				$name 	= explode(' ', $param, 2);
 
-		   		if ($id == T_DOC_COMMENT && $getTokens = _getTokens($text))
-		   		{
-		   			if (!empty($getTokens))
-		   				return $getTokens;
-		   		}
-		   }
-		}
-	}
-
-	private function _getTokens ($tokenString)
-	{
-		$array = array();
-
-		$tokenString = str_ireplace(array('/', '*', '\\'), '', $tokenString);
-		$stringArray = explode("\n", $tokenString);
-
-		foreach ($stringArray as $string)
-		{
-			$string = trim($string);
-			$name 	= explode(' ', $string, 2);
-
-			if (is_array($name))
-			{
-				switch ($name['0'])
+				if (is_array($name))
 				{
-					case '@provides':
-					case '@requires':
-					case '@group':
-					case '@suggestion':
-						$array["{$name['0']}"] = isset($name['1']) ? $name['1'] : '';
-						break;
-					default:
-						break;
+					switch ($name['0'])
+					{
+						case '@provides':
+						case '@requires':
+						case '@group':
+						case '@suggestion':
+							if (isset($array["{$name['0']}"]))
+								$array["{$name['0']}"] .= isset($name['1']) ? ' '.$name['1'] : '';
+							else
+								$array["{$name['0']}"] = isset($name['1']) ? $name['1'] : '';
+							break;
+						default:
+							break;
+					}
 				}
 			}
 		}
 
 		return $array;
+	}
+
+	public function getTree ()
+	{
+		return $this->_dirTree;
 	}
 
 	public function scan ()
@@ -139,8 +148,11 @@ protected function getType ($extension)
 
 		foreach ($paths as $key => $scan_dir)
 		{
-			$this->_dirTree = $this->_scan($scan_dir);
+			$this->_scan($scan_dir);
 		}
+
+		$this->updates();
+		$this->save();
 
 		return $this->_dirTree;
 	}
@@ -196,13 +208,7 @@ protected function getType ($extension)
 				{
 					$sub_path_array = $path_array;
 					$sub_path_array['subDir'] .= $fileName.'/';
-					$directory_tree[] = array (
-						'path' => $path,
-						'subDir' => $path_array['subDir'],
-						'name' => $fileName,
-						'type' => 'dir',
-						'tree' => $this->_scan($sub_path_array, $path)
-					);
+					$directory_tree = $this->_scan($sub_path_array, $path);
 				}
 				elseif (is_file($path))
 				{
@@ -218,29 +224,15 @@ protected function getType ($extension)
 						$url = $path_array['url_path'].'/'.$path_array['subDir'].$fileName;
 
 					$path = realpath($path);
-					$directory_tree["{$path}"] = array (
+					$this->_dirTree["{$path}"] = array (
 						'subDir' => $path_array['subDir'],
-//						'local_url' => $url,
+						'local_url' => $url,
 						'name' => $fileName,
-						'type' => $this->getType($extension),
-						'exetension' => $extension,
+						'type' => $path_array['type'],
+						'extension' => $extension,
 						'size' => filesize($path),
 						'last_modified' => filemtime($path)
 					);
-/*
-					$resource = $this->_setDB('resource');
-					$resource->resource_id = NULL;
-					$resource->name = 'provider name'; //TODO
-					$resource->path = $path;
-					$resource->type = $this->getType($extension);
-					$resource->file_exetension = $extension;
-					$resource->file_name = $fileName;
-					$resource->file_size = filesize($path);
-					$resource->force_group_on = NULL;//TODO
-					$resource->requires = NULL;//TODO
-					$resource->last_modification = filemtime($path);
-					$resource->save();
-*/
 				}
 			}
 			closedir($directory_list);
@@ -261,13 +253,17 @@ protected function getType ($extension)
 		{
 			foreach ($resource as $Next)
 			{
-				if (!empty($this->_dirTree["{$resource->path}"]))
+				$path = $resource->path;
+				if (!empty($this->_dirTree["$path"]))
 				{
 					// if its same old file then delete it
-					if ($this->_dirTree["{$resource->path}"]['last_modification'] == filemtime($resource->path))
+					if ($this->_dirTree["{$resource->path}"]['last_modified'] == $resource->last_modified)
 						unset($this->_dirTree["{$resource->path}"]); // no need for update, its old file
 					else // trigger for update
+					{
+						$this->_dirTree["{$resource->path}"]['id'] = $resource->resource_id;
 						$this->_dirTree["{$resource->path}"]['is_update'] = TRUE;
+					}
 				}
 
 			}
@@ -276,19 +272,82 @@ protected function getType ($extension)
 		return $this->_dirTree;
 	}
 
+	public function save ()
+	{
+		$resource = $this->_setDB('resource');
+
+		foreach ($this->_dirTree as $path => $file)
+		{
+			$resource->values(array());
+
+			if (!isset($file['id']))
+			{
+				$resource->resource_id = NULL;
+				$resource->path = addslashes($path);
+				$resource->type = $file['type'];
+				$resource->file_exetension = $file['extension'];
+				$resource->file_name = $file['name'];
+				$resource->url = addslashes($file['local_url']);
+			}
+
+			$resource->file_size = $file['size'];
+			$resource->last_modified = $file['last_modified'];
+
+			if ($file['extension'] == 'js' || $file['extension'] == 'css' || $file['type'] == 'template')
+			{
+				$token = $this->getTokens($path);
+
+				$resource->name = $token['@provides'];
+				$resource->requires = $token['@requires'];
+				$resource->force_group_on = $token['@group'];
+				$resource->suggestion = $token['@suggestion'] ? 1 : 0;
+			}
+
+			$resource->save(isset($file['id']) ? $file['id'] : false);
+		}
+	}
+
+	public function build ()
+	{
+		if (!is_dir($this->_pathTemplate))
+			trigger_error('please set the template directory');
+
+		$cache_dir = $this->_pathTemplate.'/'.$this->_cache_dir_name;
+
+		if (!is_dir($cache_dir))
+		{
+			if (!mkdir($cache_dir, 0755))
+				trigger_error('Error creating cache dir "'.$cache_dir.'"');
+		}
+
+		$DB = $this->_setDB('resource');
+		$resources = $DB->select('select * from resource where type = "template"');
+
+		foreach ($resources as $Next)
+		{
+			$new_path = str_ireplace($this->_pathTemplate, $cache_dir, $resources->path);
+			$dir = dirname($new_path);
+
+			if (!is_dir($dir))
+				mkdir($dir, 0755, TRUE);
+
+			$replace_with = '<!--'.$resources->requires.'-->';
+
+			$content = file_get_contents($resources->path);
+			$content = str_ireplace('</head>', $replace_with.'</head>', $content, $count);
+			if ($count == 0)
+				$content = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', $replace_with, $content, 1);
+
+			$content = $this->php_compress($content);
+			$content = $this->html_compress($content);
+			file_put_contents($new_path, $content);
+		}
+	}
 
 	public function fetch ()
 	{
 		;//TODO
 	}
-
-	public function build ()
-	{
-
-
-		//$this->_compile($this->_dirTree);
-	}
-
 
 
 	protected function _compile ($dirTree)
@@ -315,7 +374,7 @@ protected function getType ($extension)
 		}
 	}
 
-	public function gzip_save ($local_file, $save_dir, $gz_encoding_mode = 9)
+	protected function gzip_save ($local_file, $save_dir, $gz_encoding_mode = 9)
 	{
 		$file_name = basename($local_file);
 		$file_content = file_get_contents($local_file);
@@ -338,7 +397,7 @@ protected function getType ($extension)
 	 * @param $js_file
 	 * @param $compile_mode  s (simple), a (advanced) or w (whitespaced)
 	 */
-	public function js_compress ($js_file, $compile_mode = 's')
+	protected function js_compress ($js_file, $compile_mode = 's')
 	{
 		$c = new PhpClosure();
 
@@ -370,7 +429,7 @@ protected function getType ($extension)
 		return $c->useClosureLibrary()->_compile();
 	}
 
-	public function css_compress ($css)
+	protected function css_compress ($css)
 	{
 		$css = preg_replace('!//[^\n\r]+!', '', $css); //comments
 		$css = preg_replace('/[\r\n\t\s]+/s', ' ', $css); //new lines, multiple spaces/tabs/newlines
@@ -381,7 +440,7 @@ protected function getType ($extension)
 		return $css;
 	}
 
-	public function html_compress ($html)
+	protected function html_compress ($html)
 	{
 		preg_match_all('!(<(?:code|pre).*>[^<]+</(?:code|pre)>)!',$html,$pre); //exclude pre or code tags
 
@@ -402,7 +461,7 @@ protected function getType ($extension)
 		return $html;
 	}
 
-	public function php_compress ($php)
+	protected function php_compress ($php)
 	{
 		/* remove comments */
 		$php = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $php);
