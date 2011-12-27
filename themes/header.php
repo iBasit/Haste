@@ -8,7 +8,7 @@
 <title>Haste Project</title>
 <meta name="keywords" content="keywords, here" />
 <meta name="description" content="your description here" />
-<script type="text/javascript" src="haste.js"></script>
+<script type="text/javascript" src="Bootloader.js"></script>
 </head>
 <body>
 <div id="main">
